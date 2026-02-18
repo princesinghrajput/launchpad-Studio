@@ -1,0 +1,40 @@
+{
+  "version": "8.0.0",
+  "page": {
+    "pageId": "mock-home",
+    "slug": "home",
+    "title": "Welcome to Launchpad",
+    "sections": [
+      {
+        "id": "s1",
+        "type": "hero",
+        "props": {
+          "heading": "Build landing pages, fast",
+          "subheading": "A schema-driven studio for creating, editing, and publishing immutable page releases."
+        }
+      },
+      {
+        "id": "s2",
+        "type": "featureGrid",
+        "props": {
+          "features": [
+            {
+              "title": "Schema-Driven",
+              "body": "Zod-validated sections with typed registry."
+            },
+            {
+              "title": "Version Control",
+              "body": "Automated SemVer with immutable snapshots."
+            },
+            {
+              "title": "WYSIWYG-Lite",
+              "body": "Edit sections and preview changes in real time."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "changelog": "- Added hero section\n- Added featureGrid section\n- Removed cta section",
+  "publishedAt": "2026-02-18T16:32:09.564Z"
+}

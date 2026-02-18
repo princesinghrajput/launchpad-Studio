@@ -2,15 +2,14 @@ import type { HeroProps } from '@/lib/schema/page';
 
 export function HeroSection({ heading, subheading }: HeroProps) {
     return (
-        <section
-            className="flex flex-col items-center justify-center gap-4 px-6 py-24 text-center"
-            aria-labelledby="hero-heading"
-        >
-            <h2 id="hero-heading" className="text-4xl font-bold tracking-tight sm:text-5xl">
+        <section className="py-16 text-center" aria-labelledby="hero-heading">
+            <h2 id="hero-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
                 {heading}
             </h2>
             {subheading && (
-                <p className="max-w-2xl text-lg text-muted-foreground">{subheading}</p>
+                <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground leading-relaxed">
+                    {subheading}
+                </p>
             )}
         </section>
     );

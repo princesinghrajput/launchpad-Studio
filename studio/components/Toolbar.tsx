@@ -2,17 +2,15 @@
 
 import { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../hooks/useStudioStore';
-import { addSection } from '../store/slices/draftPageSlice';
+import { addSection, clearDraft } from '../store/slices/draftPageSlice';
 import { publishDraft, resetPublish } from '../store/slices/publishSlice';
-import { clearDraft } from '../store/slices/draftPageSlice';
 import type { SectionType } from '@/lib/schema/page';
-import { Plus, Upload, RotateCcw } from 'lucide-react';
 
 const SECTION_TYPES: { value: SectionType; label: string }[] = [
     { value: 'hero', label: 'Hero' },
     { value: 'featureGrid', label: 'Feature Grid' },
     { value: 'testimonial', label: 'Testimonial' },
-    { value: 'cta', label: 'Call to Action' },
+    { value: 'cta', label: 'CTA' },
 ];
 
 interface ToolbarProps {
@@ -26,97 +24,84 @@ export function Toolbar({ slug, canPublish }: ToolbarProps) {
     const publishState = useAppSelector((s) => s.publish);
     const isDirty = useAppSelector((s) => s.draftPage.isDirty);
 
-    const handleAdd = () => {
-        dispatch(addSection({ type: selectedType }));
-    };
-
-    const handlePublish = () => {
-        dispatch(publishDraft(slug));
-    };
-
-    const handleReset = () => {
-        dispatch(clearDraft());
-        window.location.reload();
-    };
-
     return (
-        <div className="flex flex-col gap-3 border-b p-3">
-            {/* Add Section */}
-            <div className="flex gap-2">
-                <label htmlFor="section-type-select" className="sr-only">
-                    Section type
-                </label>
+        <div className="flex flex-col gap-2.5 border-b p-3">
+            {/* Add section row */}
+            <div className="flex gap-1.5">
                 <select
-                    id="section-type-select"
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value as SectionType)}
-                    className="flex-1 rounded-md border bg-background px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Section type"
+                    className="flex-1 rounded-lg border bg-white px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
                     {SECTION_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                            {t.label}
-                        </option>
+                        <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                 </select>
                 <button
                     type="button"
-                    onClick={handleAdd}
-                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => dispatch(addSection({ type: selectedType }))}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
-                    <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                    Add
+                    + Add
                 </button>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
+            {/* Action buttons */}
+            <div className="flex gap-1.5">
                 {isDirty && (
                     <button
                         type="button"
-                        onClick={handleReset}
-                        className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => { dispatch(clearDraft()); window.location.reload(); }}
+                        className="rounded-lg border px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground active:scale-[0.97]"
                     >
-                        <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
                         Reset
                     </button>
                 )}
                 {canPublish && (
                     <button
                         type="button"
-                        onClick={handlePublish}
+                        onClick={() => dispatch(publishDraft(slug))}
                         disabled={publishState.status === 'loading'}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-green-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
                     >
-                        <Upload className="h-3.5 w-3.5" aria-hidden="true" />
-                        {publishState.status === 'loading' ? 'Publishing...' : 'Publish'}
+                        {publishState.status === 'loading' ? 'Publishing…' : 'Publish'}
                     </button>
                 )}
             </div>
 
-            {/* Publish Result */}
+            {/* Status messages */}
             {publishState.status === 'success' && publishState.result && (
-                <div className="rounded-md bg-green-50 p-2 text-xs text-green-700 dark:bg-green-950/20 dark:text-green-400">
-                    <p className="font-medium">Published v{publishState.result.version}</p>
-                    <p className="mt-0.5">{publishState.result.changelog}</p>
-                    <button
-                        type="button"
-                        onClick={() => dispatch(resetPublish())}
-                        className="mt-1 underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                        Dismiss
-                    </button>
+                <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-950/20">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                            ✓ Published <strong>v{publishState.result.version}</strong>
+                        </span>
+                        <button onClick={() => dispatch(resetPublish())} className="text-[10px] text-emerald-600 underline hover:no-underline">
+                            dismiss
+                        </button>
+                    </div>
+                    {publishState.result.changelog && (
+                        <div className="mt-2 border-t border-emerald-200 pt-2 dark:border-emerald-800">
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-500">
+                                Changelog
+                            </span>
+                            <ul className="mt-1 space-y-0.5">
+                                {publishState.result.changelog.split('\n').filter(Boolean).map((line, i) => (
+                                    <li key={i} className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                                        {line}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             )}
-
             {publishState.status === 'error' && (
-                <div className="rounded-md bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/20 dark:text-red-400" role="alert">
-                    <p>{publishState.error}</p>
-                    <button
-                        type="button"
-                        onClick={() => dispatch(resetPublish())}
-                        className="mt-1 underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                        Dismiss
+                <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-1.5 dark:bg-red-950/20" role="alert">
+                    <span className="text-[11px] text-red-600">{publishState.error}</span>
+                    <button onClick={() => dispatch(resetPublish())} className="text-[10px] text-red-500 underline hover:no-underline">
+                        dismiss
                     </button>
                 </div>
             )}

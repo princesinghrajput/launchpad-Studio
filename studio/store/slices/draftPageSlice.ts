@@ -12,7 +12,7 @@ function defaultProps(type: SectionType): Section['props'] {
         case 'testimonial':
             return { quote: 'Quote text', author: 'Author' };
         case 'cta':
-            return { label: 'Click Here', url: 'https://example.com' };
+            return { label: 'Click Here', url: '#' };
     }
 }
 
@@ -102,6 +102,13 @@ export const draftPageSlice = createSlice({
                 state.isDirty = false;
             }
         },
+    },
+    extraReducers: (builder) => {
+        // Reset isDirty when publish succeeds
+        builder.addCase(
+            'publish/publishDraft/fulfilled',
+            (state) => { state.isDirty = false; }
+        );
     },
 });
 

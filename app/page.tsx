@@ -1,136 +1,83 @@
 import Link from 'next/link';
-import { Layers, Eye, Pencil, Upload } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-primary" />
-            <span className="text-sm font-bold tracking-tight">Launchpad Studio</span>
-          </div>
-          <nav className="flex items-center gap-3">
-            <Link
-              href="/preview/home"
-              className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Preview
-            </Link>
-            <Link
-              href="/api/set-role?role=publisher&redirect=/studio/home"
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Open Studio
-            </Link>
-          </nav>
-        </div>
-      </header>
-
+    <div className="flex min-h-screen flex-col bg-[#f8f9fb]">
       {/* Hero */}
-      <main className="flex flex-1 flex-col">
-        <section className="flex flex-col items-center justify-center gap-6 px-6 py-28 text-center">
-          <div className="rounded-full bg-primary/10 px-4 py-1 text-xs font-medium text-primary">
-            Schema-Driven Page Builder
-          </div>
-          <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
-            Build, edit, and publish
-            <br />
-            <span className="text-primary">landing pages</span> with confidence
-          </h1>
-          <p className="max-w-lg text-lg text-muted-foreground">
-            A studio for creating immutable page releases with Zod validation,
-            automated SemVer, and role-based access control.
+      <main className="flex flex-1 flex-col items-center justify-center px-6 py-20 text-center">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+          Launchpad Studio
+        </h1>
+        <p className="mt-4 max-w-md text-lg text-muted-foreground">
+          A schema-driven page builder with Zod validation, automated SemVer,
+          and role-based access control.
+        </p>
+
+        {/* Primary actions */}
+        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+          <Link
+            href="/api/set-role?role=publisher&redirect=/studio/home"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.97]"
+          >
+            ✏️ Open Studio Editor
+          </Link>
+          <Link
+            href="/preview/home"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border bg-white px-6 py-3 text-sm font-medium shadow-sm transition-all hover:bg-muted active:scale-[0.97]"
+          >
+            👁 View Preview
+          </Link>
+        </div>
+
+        {/* Role switcher */}
+        <div className="mt-16 w-full max-w-md">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Try different roles
           </p>
-          <div className="flex gap-3 pt-4">
+          <div className="flex justify-center gap-2">
+            <Link
+              href="/api/set-role?role=viewer&redirect=/preview/home"
+              className="rounded-lg border bg-white px-4 py-2 text-sm transition-all hover:shadow-sm active:scale-[0.97]"
+            >
+              👁 Viewer
+            </Link>
+            <Link
+              href="/api/set-role?role=editor&redirect=/studio/home"
+              className="rounded-lg border bg-white px-4 py-2 text-sm transition-all hover:shadow-sm active:scale-[0.97]"
+            >
+              ✏️ Editor
+            </Link>
             <Link
               href="/api/set-role?role=publisher&redirect=/studio/home"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="rounded-lg border bg-white px-4 py-2 text-sm font-medium text-emerald-700 transition-all hover:shadow-sm active:scale-[0.97]"
             >
-              <Pencil className="h-4 w-4" />
-              Open Studio
-            </Link>
-            <Link
-              href="/preview/home"
-              className="inline-flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Eye className="h-4 w-4" />
-              View Preview
+              🚀 Publisher
             </Link>
           </div>
-        </section>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Editors can edit but not publish · Publishers can edit and publish · Viewers are read-only
+          </p>
+        </div>
 
-        {/* Features */}
-        <section className="border-t bg-muted/30 px-6 py-20">
-          <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-3">
-            <div className="flex flex-col gap-3 rounded-lg border bg-background p-6 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-                <Layers className="h-5 w-5 text-primary" />
-              </div>
-              <h2 className="text-base font-semibold">Schema-Driven</h2>
-              <p className="text-sm text-muted-foreground">
-                Zod-validated sections with typed registry. Invalid CMS data
-                is caught before render.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 rounded-lg border bg-background p-6 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-                <Upload className="h-5 w-5 text-primary" />
-              </div>
-              <h2 className="text-base font-semibold">Version Control</h2>
-              <p className="text-sm text-muted-foreground">
-                Automated SemVer with deterministic diffing. Every publish
-                creates an immutable JSON snapshot.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 rounded-lg border bg-background p-6 shadow-sm">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
-                <Pencil className="h-5 w-5 text-primary" />
-              </div>
-              <h2 className="text-base font-semibold">WYSIWYG-Lite</h2>
-              <p className="text-sm text-muted-foreground">
-                Edit sections and see changes in the live preview panel.
-                Add, reorder, and remove sections visually.
-              </p>
-            </div>
+        {/* Feature highlights */}
+        <div className="mt-16 grid w-full max-w-2xl gap-4 text-left sm:grid-cols-3">
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <p className="text-sm font-semibold">Schema-Driven</p>
+            <p className="mt-1 text-xs text-muted-foreground">Zod-validated sections with typed registry</p>
           </div>
-        </section>
-
-        {/* Roles */}
-        <section className="border-t px-6 py-16">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="mb-6 text-2xl font-bold tracking-tight">Quick Role Switcher</h2>
-            <p className="mb-8 text-sm text-muted-foreground">
-              Set your role to test different access levels (enforced via middleware).
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link
-                href="/api/set-role?role=viewer&redirect=/preview/home"
-                className="rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                👁 Viewer
-              </Link>
-              <Link
-                href="/api/set-role?role=editor&redirect=/studio/home"
-                className="rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                ✏️ Editor
-              </Link>
-              <Link
-                href="/api/set-role?role=publisher&redirect=/studio/home"
-                className="rounded-md border bg-green-50 px-4 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-green-950/30 dark:text-green-400"
-              >
-                🚀 Publisher
-              </Link>
-            </div>
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <p className="text-sm font-semibold">Version Control</p>
+            <p className="mt-1 text-xs text-muted-foreground">Automated SemVer with immutable JSON snapshots</p>
           </div>
-        </section>
+          <div className="rounded-xl border bg-white p-5 shadow-sm">
+            <p className="text-sm font-semibold">RBAC</p>
+            <p className="mt-1 text-xs text-muted-foreground">Role-based access via middleware</p>
+          </div>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        Launchpad Studio — Schema-driven page builder
+      <footer className="py-4 text-center text-xs text-muted-foreground">
+        Built by Prince Singh Rajput
       </footer>
     </div>
   );

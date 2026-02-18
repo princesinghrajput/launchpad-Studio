@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getPageBySlug } from '@/content/getPageBySlug';
+import { getLatestSnapshot } from '@/publish/snapshot';
 import { PageSchema } from '@/lib/schema/page';
 import { StudioProvider } from '@/studio/store/provider';
 import { StudioEditor } from '@/studio/components/StudioEditor';
@@ -14,6 +15,20 @@ export default async function StudioPage({ params }: StudioPageProps) {
     const cookieStore = await cookies();
     const role = cookieStore.get('role')?.value ?? 'viewer';
 
+    // 1. Try latest published release first
+    const latest = await getLatestSnapshot(slug);
+    if (latest) {
+        const result = PageSchema.safeParse(latest.page);
+        if (result.success) {
+            return (
+                <StudioProvider>
+                    <StudioEditor initialPage={result.data} role={role} />
+                </StudioProvider>
+            );
+        }
+    }
+
+    // 2. Fall back to CMS / mock data if nothing published yet
     const raw = await getPageBySlug(slug);
     if (!raw) return notFound();
 

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { PageSchema } from '@/lib/schema/page';
 import { getPageBySlug } from '@/content/getPageBySlug';
-import { PageRenderer } from '@/renderer/PageRenderer';
+import { getLatestSnapshot } from '@/publish/snapshot';
+import { DraftPreview } from '@/renderer/DraftPreview';
 
 interface PreviewPageProps {
     params: Promise<{ slug: string }>;
@@ -9,8 +10,18 @@ interface PreviewPageProps {
 
 export default async function PreviewPage({ params }: PreviewPageProps) {
     const { slug } = await params;
-    const raw = await getPageBySlug(slug);
 
+    // 1. Try loading the latest published release first
+    const latest = await getLatestSnapshot(slug);
+    if (latest) {
+        const result = PageSchema.safeParse(latest.page);
+        if (result.success) {
+            return <DraftPreview slug={slug} fallbackPage={result.data} />;
+        }
+    }
+
+    // 2. Fall back to CMS / mock data if nothing published yet
+    const raw = await getPageBySlug(slug);
     if (!raw) return notFound();
 
     const result = PageSchema.safeParse(raw);
@@ -30,12 +41,5 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
         );
     }
 
-    return (
-        <main className="mx-auto max-w-5xl">
-            <h1 className="px-6 pt-12 text-3xl font-bold tracking-tight">
-                {result.data.title}
-            </h1>
-            <PageRenderer page={result.data} />
-        </main>
-    );
+    return <DraftPreview slug={slug} fallbackPage={result.data} />;
 }

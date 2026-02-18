@@ -38,7 +38,12 @@ export const publishDraft = createAsyncThunk<
         return rejectWithValue(body.error ?? `Publish failed (${res.status})`);
     }
 
-    return res.json();
+    const result: PublishResult = await res.json();
+
+    // Clear localStorage draft so preview doesn't show stale "unsaved draft" banner
+    try { localStorage.removeItem(`draft:${slug}`); } catch { /* noop */ }
+
+    return result;
 });
 
 export const publishSlice = createSlice({

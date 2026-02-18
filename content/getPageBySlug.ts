@@ -102,7 +102,7 @@ function getMockPage(slug: string): Page | null {
                     type: 'cta',
                     props: {
                         label: 'Get Started',
-                        url: 'https://example.com/start',
+                        url: '/api/set-role?role=publisher&redirect=/studio/home',
                     },
                 },
             ],

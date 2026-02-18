@@ -1,0 +1,20 @@
+{
+  "version": "5.0.0",
+  "page": {
+    "pageId": "mock-home",
+    "slug": "home",
+    "title": "Welcome to Launchpad",
+    "sections": [
+      {
+        "id": "s3",
+        "type": "testimonial",
+        "props": {
+          "quote": "Launchpad Studio changed how we ship landing pages.",
+          "author": "Engineering Lead"
+        }
+      }
+    ]
+  },
+  "changelog": "- Removed hero section\n- Removed featureGrid section\n- Removed cta section",
+  "publishedAt": "2026-02-18T16:23:05.167Z"
+}

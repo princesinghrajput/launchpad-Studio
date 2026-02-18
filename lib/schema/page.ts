@@ -25,7 +25,7 @@ export const TestimonialPropsSchema = z.object({
 
 export const CtaPropsSchema = z.object({
     label: z.string().min(1, 'Label is required'),
-    url: z.string().url('Must be a valid URL'),
+    url: z.string().min(1, 'URL is required'),
 });
 
 /* ──────────────────────────────────────────────

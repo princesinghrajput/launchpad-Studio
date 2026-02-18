@@ -2,18 +2,18 @@ import type { FeatureGridProps } from '@/lib/schema/page';
 
 export function FeatureGridSection({ features }: FeatureGridProps) {
     return (
-        <section className="px-6 py-16" aria-label="Features">
-            <ul className="mx-auto grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3" role="list">
-                {features.map((feature, i) => (
-                    <li
-                        key={`${feature.title}-${i}`}
-                        className="rounded-lg border bg-card p-6 shadow-sm"
+        <section className="py-12" aria-label="Features">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {features.map((f, i) => (
+                    <div
+                        key={`${f.title}-${i}`}
+                        className="rounded-xl border bg-[#fafafa] p-5 transition-shadow hover:shadow-sm"
                     >
-                        <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>
-                        <p className="text-sm text-muted-foreground">{feature.body}</p>
-                    </li>
+                        <h3 className="text-sm font-semibold">{f.title}</h3>
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
+                    </div>
                 ))}
-            </ul>
+            </div>
         </section>
     );
 }

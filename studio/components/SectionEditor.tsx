@@ -12,17 +12,17 @@ export function SectionEditor() {
 
     if (!section) {
         return (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                Select a section to edit its properties.
+            <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                Select a section to edit
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col gap-4 p-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Edit {section.type}
-            </h3>
+        <div className="flex flex-col gap-3 p-3">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Properties
+            </span>
             <EditorFields section={section} />
         </div>
     );
@@ -39,90 +39,43 @@ function EditorFields({ section }: { section: Section }) {
         case 'hero':
             return (
                 <>
-                    <Field
-                        label="Heading"
-                        value={section.props.heading}
-                        onChange={(v) => update({ heading: v })}
-                        required
-                    />
-                    <Field
-                        label="Subheading"
-                        value={section.props.subheading ?? ''}
-                        onChange={(v) => update({ subheading: v })}
-                    />
+                    <Field label="Heading" value={section.props.heading} onChange={(v) => update({ heading: v })} />
+                    <Field label="Subheading" value={section.props.subheading ?? ''} onChange={(v) => update({ subheading: v })} />
                 </>
             );
-
         case 'cta':
             return (
                 <>
-                    <Field
-                        label="Button Label"
-                        value={section.props.label}
-                        onChange={(v) => update({ label: v })}
-                        required
-                    />
-                    <Field
-                        label="URL"
-                        value={section.props.url}
-                        onChange={(v) => update({ url: v })}
-                        required
-                        type="url"
-                    />
+                    <Field label="Label" value={section.props.label} onChange={(v) => update({ label: v })} />
+                    <Field label="URL" value={section.props.url} onChange={(v) => update({ url: v })} />
                 </>
             );
-
         case 'testimonial':
             return (
                 <>
-                    <Field
-                        label="Quote"
-                        value={section.props.quote}
-                        onChange={(v) => update({ quote: v })}
-                        required
-                    />
-                    <Field
-                        label="Author"
-                        value={section.props.author}
-                        onChange={(v) => update({ author: v })}
-                        required
-                    />
+                    <Field label="Quote" value={section.props.quote} onChange={(v) => update({ quote: v })} />
+                    <Field label="Author" value={section.props.author} onChange={(v) => update({ author: v })} />
                 </>
             );
-
         default:
-            return (
-                <p className="text-sm text-muted-foreground">
-                    Editing not available for this section type.
-                </p>
-            );
+            return <p className="text-xs text-muted-foreground">No editable properties.</p>;
     }
 }
 
-interface FieldProps {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    required?: boolean;
-    type?: string;
-}
-
-function Field({ label, value, onChange, required, type = 'text' }: FieldProps) {
-    const id = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
+function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    const id = `prop-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
     return (
-        <div className="flex flex-col gap-1.5">
-            <label htmlFor={id} className="text-sm font-medium">
+        <div className="flex flex-col gap-1">
+            <label htmlFor={id} className="text-[11px] font-medium text-muted-foreground">
                 {label}
-                {required && <span className="ml-0.5 text-destructive" aria-hidden="true">*</span>}
             </label>
             <input
                 id={id}
-                type={type}
+                type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                aria-required={required}
-                className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-lg border bg-white px-2.5 py-1.5 text-xs shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             />
         </div>
     );
