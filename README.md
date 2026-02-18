@@ -2,7 +2,7 @@
 
 A page builder where you load content from Contentful, tweak it in a WYSIWYG-lite editor, and publish immutable versioned releases. Built with Next.js App Router, Redux Toolkit, and Zod schemas.
 
-> Built as a take-home assignment. Timeboxed to ~3-4 hours, so some things are intentionally rough around the edges. See [What's Incomplete](#whats-incomplete) for details.
+> Built as a take-home assignment. Timeboxed to ~3 hours, so some things are intentionally rough around the edges. See [What's Incomplete](#whats-incomplete) for details.
 
 ---
 
@@ -164,13 +164,13 @@ Next.js 15 (App Router) · TypeScript · Redux Toolkit · Contentful · Zod · T
 
 Being honest about what got cut due to the time constraint:
 
-**Drag-to-reorder** — Went with Up/Down buttons instead. Less flashy, but keyboard-accessible and took 10 minutes instead of an hour with a DnD library.
+**Drag-to-reorder** — Went with Up/Down buttons instead. Less flashy, but keyboard-accessible and took less time instead of an hour with a DnD library.
 
 **FeatureGrid & Testimonial editing** — These render fine from CMS data, but you can't edit their props in the studio. Focused on Hero and CTA editing since those were explicitly required.
 
 **Tests** — Vitest and Playwright configs are set up but the actual test files aren't written yet. The `publish/` module is designed to be testable in isolation — diff and semver are pure functions.
 
-**Auth** — Role is a plain cookie. No signing, no sessions. For a real app you'd use NextAuth or similar. Good enough for demoing RBAC.
+**Auth** — Role is a plain cookie. No signing, no sessions. For a real app I'd use NextAuth or similar. Good enough for demoing RBAC.
 
 **CI** — GitHub Actions workflow isn't wired up yet. The plan was to run `npm test` + `npm run build` + Playwright on push.
 
