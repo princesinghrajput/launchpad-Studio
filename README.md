@@ -1,8 +1,8 @@
 # Launchpad Studio
 
-A page builder where you load content from Contentful, tweak it in a WYSIWYG-lite editor, and publish immutable versioned releases. Built with Next.js App Router, Redux Toolkit, and Zod schemas.
+A schema-driven page builder — load content from Contentful, edit it in a WYSIWYG-lite studio, and publish immutable versioned releases with automated SemVer, changelogs, and RBAC.
 
-> Built as a take-home assignment. Timeboxed to ~3 hours, so some things are intentionally rough around the edges. See [What's Incomplete](#whats-incomplete) for details.
+> Timeboxed to ~3 hours. See [What's Incomplete](#whats-incomplete) for tradeoffs.
 
 ---
 
@@ -18,34 +18,92 @@ A page builder where you load content from Contentful, tweak it in a WYSIWYG-lit
 
 ---
 
-## How It Works
-
-The app has five isolated subsystems. Each one does one thing and doesn't leak into the others.
+## Architecture
 
 ```
- Contentful ──► content/adapter ──► Zod validation ──► renderer/ ──► /preview (SSR)
-                                                           │
-                                                           └──► /studio (client)
-                                                                    │
-                                                                    ▼
-                                                              Redux store
-                                                                    │
-                                                                    ▼
-                                                         publish/ (diff → semver → snapshot)
-                                                                    │
-                                                                    ▼
-                                                         Vercel Blob / local filesystem
+                    ┌─────────────────────┐
+                    │   Contentful (CMS)  │
+                    └─────────┬───────────┘
+                              │ fetch
+                              ▼
+                    ┌─────────────────────┐
+                    │   content/adapter   │
+                    │  (transform + map)  │
+                    └─────────┬───────────┘
+                              │ clean domain model
+                              ▼
+                    ┌─────────────────────┐
+                    │   Zod validation    │
+                    │  (PageSchema)       │
+                    └─────────┬───────────┘
+                              │ validated Page
+                              ▼
+                    ┌─────────────────────┐
+                    │     renderer/       │
+                    │   PageRenderer +    │
+                    │  sectionRegistry    │
+                    └────┬──────────┬─────┘
+                         │          │
+              renders    │          │  renders (live preview)
+                         ▼          ▼
+               ┌──────────┐  ┌───────────────┐
+               │ /preview  │  │   /studio     │
+               │  (SSR)    │  │  (Client)     │
+               └──────────┘  └───────┬───────┘
+                                     │ user edits
+                                     ▼
+                           ┌──────────────────┐
+                           │   Redux store    │
+                           │  (draft + UI +   │
+                           │   publish slice) │
+                           └────────┬─────────┘
+                                    │ dispatch publishDraft
+                                    ▼
+                           ┌──────────────────┐
+                           │ POST /api/publish│
+                           │  (RBAC gated)    │
+                           └────────┬─────────┘
+                                    │
+                                    ▼
+                           ┌──────────────────┐
+                           │    publish/      │
+                           │ diff → semver →  │
+                           │ changelog →      │
+                           │ snapshot         │
+                           └────────┬─────────┘
+                                    │ write
+                                    ▼
+                           ┌──────────────────┐
+                           │ Snapshot Storage  │
+                           │ (Vercel Blob or  │
+                           │  local fs)       │
+                           └──────────────────┘
+
+  Published snapshots can render via /preview
+  without contacting Contentful.
 ```
 
-**renderer/** — The core engine. A typed registry maps section types → React components. If the registry doesn't know a type, it renders a fallback. The renderer doesn't care where data comes from — CMS, localStorage draft, or a published snapshot all work the same.
+### Data Loading Priority
 
-**content/** — Wraps Contentful. Nothing outside this folder imports from the Contentful SDK. You could swap to Sanity or Strapi by changing just this directory. Falls back to mock data when credentials aren't configured.
+Both `/preview` and `/studio` load data in this order:
 
-**studio/** — The editor. Has its own Redux store with three slices: draft page state, UI state (selected section), and publish workflow. Drafts auto-save to localStorage so you don't lose work on refresh.
+1. **localStorage draft** (if user is mid-edit) — preview shows an amber "Viewing draft" banner
+2. **Latest published snapshot** (from Vercel Blob or `releases/` folder)
+3. **Contentful / mock data** (only if nothing has been published yet)
 
-**publish/** — Business logic for releasing. Diffs the draft against the last snapshot, calculates a semver bump (patch/minor/major based on change type), generates a changelog, and writes an immutable snapshot. Publishing the same content twice is a no-op (idempotent).
+---
 
-**rbac/** — Three roles: viewer, editor, publisher. Enforced server-side via Next.js middleware — viewers get redirected from `/studio` to `/preview`, only publishers can hit `/api/publish`.
+## Subsystems
+
+**renderer/** — Core rendering engine. A typed `Record<SectionType, Component>` registry maps section schemas to React components. Unknown types get an `UnsupportedSection` fallback. The renderer is CMS-agnostic — it doesn't care if data comes from Contentful, localStorage, or a snapshot.
+
+**content/** — Contentful boundary. Wraps the SDK, transforms raw entries into domain models via `contentAdapter.ts`. No Contentful types leak outside this directory. Falls back to mock data when credentials aren't set.
+
+**studio/** — Editor app with its own Redux store (three slices: `draftPage`, `ui`, `publish`). Drafts auto-save to localStorage. Live preview renders the current draft in real time.
+
+**publish/** — Release pipeline. `diff.ts` compares draft vs last snapshot, `semver.ts` determines the bump (text→patch, add→minor, remove→major), `changelog.ts` generates a summary, `snapshot.ts` writes an immutable JSON file. Publishing identical content is a no-op.
+
+**rbac/** — Server-side role enforcement via Next.js middleware. Viewers can't access `/studio`, only publishers can hit `/api/publish`.
 
 ---
 
@@ -53,60 +111,114 @@ The app has five isolated subsystems. Each one does one thing and doesn't leak i
 
 ```
 ├── app/
-│   ├── api/publish/route.ts        # Validates draft, diffs, bumps version, saves snapshot
-│   ├── api/set-role/route.ts       # Sets role cookie (for demo)
-│   ├── preview/[slug]/page.tsx     # SSR — loads published release > CMS data
-│   ├── studio/[slug]/page.tsx      # Loads latest release into editor
+│   ├── api/publish/route.ts        # Validate → diff → version → snapshot
+│   ├── api/set-role/route.ts       # Sets role cookie for demo
+│   ├── preview/[slug]/page.tsx     # SSR preview page
+│   ├── studio/[slug]/page.tsx      # Studio editor page
 │   └── page.tsx                    # Landing page with role switcher
 ├── content/
-│   ├── contentfulClient.ts         # SDK wrapper (delivery + preview APIs)
-│   ├── contentAdapter.ts           # Raw Contentful → clean domain model
+│   ├── contentfulClient.ts         # Contentful SDK (delivery + preview)
+│   ├── contentAdapter.ts           # CMS → domain model transform
 │   ├── getPageBySlug.ts            # Fetcher with mock fallback
-│   └── types.ts                    # Contentful types (never exported outside)
+│   └── types.ts                    # CMS-specific types (internal only)
 ├── renderer/
-│   ├── sectionRegistry.ts          # Record<SectionType, Component>
-│   ├── PageRenderer.tsx            # Maps sections → components
-│   ├── ErrorBoundary.tsx           # Catches render crashes
-│   ├── DraftPreview.tsx            # Reads localStorage, shows draft banner
+│   ├── sectionRegistry.ts          # Section type → component map
+│   ├── PageRenderer.tsx            # Iterates sections, renders via registry
+│   ├── ErrorBoundary.tsx           # Catches section render crashes
+│   ├── DraftPreview.tsx            # Client-side draft loader
 │   └── sections/                   # Hero, FeatureGrid, Testimonial, CTA, Unsupported
 ├── studio/
 │   ├── components/                 # StudioEditor, SectionList, SectionEditor, Toolbar
 │   └── store/slices/               # draftPageSlice, uiSlice, publishSlice
 ├── publish/
-│   ├── diff.ts                     # Structural comparison of two pages
-│   ├── semver.ts                   # Bump rules: text→patch, add→minor, remove→major
-│   ├── changelog.ts                # "Added 1 section. Updated hero text."
-│   └── snapshot.ts                 # Writes to Vercel Blob or local fs
+│   ├── diff.ts                     # Page structural comparison
+│   ├── semver.ts                   # Version bump calculator
+│   ├── changelog.ts                # Human-readable change summary
+│   └── snapshot.ts                 # Dual storage (Vercel Blob / filesystem)
 ├── rbac/roles.ts                   # Role definitions
-├── middleware.ts                    # Server-side route protection
-└── lib/schema/page.ts              # Zod schemas (Page, Section, SectionType)
+├── middleware.ts                    # Route-level RBAC enforcement
+└── lib/schema/page.ts              # Zod schemas: Page, Section, SectionType
 ```
 
 ---
 
-## Contentful Setup
+## Contentful Model
 
 Two content types:
 
-**Section** — fields: `sectionId` (text), `type` (text), `props` (JSON)  
-**Page** — fields: `pageId` (text), `slug` (text), `title` (text), `sections` (references → Section)
+| Content Type | Fields                                                                            |
+| ------------ | --------------------------------------------------------------------------------- |
+| **Section**  | `sectionId` (text), `type` (text), `props` (JSON)                                 |
+| **Page**     | `pageId` (text), `slug` (text), `title` (text), `sections` (references → Section) |
 
-The adapter in `content/contentAdapter.ts` transforms raw entries into domain objects. Zod validates everything before it hits the renderer. If you don't set Contentful credentials, mock data kicks in automatically — the app works either way.
+`contentAdapter.ts` transforms raw Contentful entries into domain objects. When `CONTENTFUL_SPACE_ID` isn't set, mock data is served instead — no setup required for local development.
 
 ---
 
 ## Publish Pipeline
 
-When you hit Publish:
+1. Draft validated against Zod schemas
+2. `diff.ts` compares draft vs last published snapshot
+3. `semver.ts` picks the bump — text edits → patch, new sections → minor, removals → major
+4. `changelog.ts` generates a summary
+5. `snapshot.ts` writes an immutable JSON file to Vercel Blob (production) or filesystem (local)
+6. localStorage draft is cleared, studio shows "Published ✓"
 
-1. Draft is validated against Zod schemas
-2. `diff.ts` compares draft vs last published version
-3. `semver.ts` picks the bump: text edits → patch, new sections → minor, removed sections → major
-4. `changelog.ts` generates a human-readable summary
-5. `snapshot.ts` saves an immutable JSON snapshot (Vercel Blob in production, filesystem locally)
-6. Studio clears the localStorage draft and shows "Published ✓"
+Publishing identical content returns the existing version — no duplicates.
 
-Same content published twice? Returns the existing version — no duplicate snapshots.
+### Example Snapshot (`releases/home/0.1.0.json`)
+
+```json
+{
+  "version": "0.1.0",
+  "page": {
+    "pageId": "home",
+    "slug": "home",
+    "title": "Welcome to Launchpad",
+    "sections": [
+      {
+        "id": "s1",
+        "type": "hero",
+        "props": {
+          "heading": "Build landing pages, fast",
+          "subheading": "A schema-driven studio for creating and publishing pages."
+        }
+      },
+      {
+        "id": "s2",
+        "type": "featureGrid",
+        "props": {
+          "features": [
+            { "title": "Schema-Driven", "body": "Zod-validated sections" },
+            { "title": "Version Control", "body": "Automated SemVer" },
+            { "title": "WYSIWYG-Lite", "body": "Edit and preview in real time" }
+          ]
+        }
+      },
+      {
+        "id": "s3",
+        "type": "testimonial",
+        "props": {
+          "quote": "Launchpad Studio changed how we ship pages.",
+          "author": "Engineering Lead"
+        }
+      },
+      {
+        "id": "s4",
+        "type": "cta",
+        "props": {
+          "label": "Get Started",
+          "url": "/studio/home"
+        }
+      }
+    ]
+  },
+  "changelog": "- Added hero section\n- Added featureGrid section\n- Added testimonial section\n- Added cta section",
+  "publishedAt": "2026-02-18T17:07:28.220Z"
+}
+```
+
+Each snapshot is immutable — once written, it's never modified. The preview page can render directly from a snapshot without contacting Contentful.
 
 ---
 
@@ -118,27 +230,27 @@ Same content published twice? Returns the existing version — no duplicate snap
 | Editor    |   ✓    |   ✓   |    ✗    |    ✓    |
 | Publisher |   ✓    |   ✓   |    ✓    |    ✓    |
 
-Switch roles from the landing page or hit `/api/set-role?role=publisher&redirect=/studio/home`. It's a cookie — no real auth, just enough for demo.
+Switch roles from the landing page or via `/api/set-role?role=publisher&redirect=/studio/home`.
 
 ---
 
-## Running Locally
+## Getting Started
 
 ```bash
 git clone https://github.com/princesinghrajput/launchpad-Studio.git
 cd launchpad-studio
 npm install
-cp .env.local.example .env.local   # fill in credentials or leave empty for mock data
+cp .env.local.example .env.local
 npm run dev
 ```
 
-### Env Variables
+### Environment Variables
 
 ```env
-CONTENTFUL_SPACE_ID=...           # optional — mock data used if empty
+CONTENTFUL_SPACE_ID=...            # leave empty to use mock data
 CONTENTFUL_ACCESS_TOKEN=...
 CONTENTFUL_PREVIEW_TOKEN=...
-BLOB_READ_WRITE_TOKEN=...         # for Vercel Blob (publishing on Vercel)
+BLOB_READ_WRITE_TOKEN=...          # Vercel Blob token (for deployed publishing)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -148,8 +260,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 npm run dev       # dev server
 npm run build     # production build
 npm run lint      # eslint
-npm run test      # vitest (unit tests)
-npm run test:e2e  # playwright
+npm run test      # unit tests (vitest)
+npm run test:e2e  # e2e tests (playwright)
 ```
 
 ---
@@ -162,17 +274,15 @@ Next.js 15 (App Router) · TypeScript · Redux Toolkit · Contentful · Zod · T
 
 ## What's Incomplete
 
-Being honest about what got cut due to the time constraint:
+**Drag-to-reorder** — Replaced with Up/Down buttons. Keyboard-accessible and simpler than wiring up a DnD library.
 
-**Drag-to-reorder** — Went with Up/Down buttons instead. Less flashy, but keyboard-accessible and took less time instead of an hour with a DnD library.
+**FeatureGrid & Testimonial editing** — These render correctly but their props can't be edited in the studio. Focused on Hero and CTA editing which were the core requirement.
 
-**FeatureGrid & Testimonial editing** — These render fine from CMS data, but you can't edit their props in the studio. Focused on Hero and CTA editing since those were explicitly required.
+**Tests** — Vitest and Playwright configs are in place, test files aren't written yet. The publish module (diff, semver) is designed as pure functions for easy testing.
 
-**Tests** — Vitest and Playwright configs are set up but the actual test files aren't written yet. The `publish/` module is designed to be testable in isolation — diff and semver are pure functions.
+**Auth** — Role is a plain cookie, no sessions. Would use NextAuth in production.
 
-**Auth** — Role is a plain cookie. No signing, no sessions. For a real app I'd use NextAuth or similar. Good enough for demoing RBAC.
-
-**CI** — GitHub Actions workflow isn't wired up yet. The plan was to run `npm test` + `npm run build` + Playwright on push.
+**CI** — Not wired up. Would run `build` + `test` + Playwright on push via GitHub Actions.
 
 ---
 
