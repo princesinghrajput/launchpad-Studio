@@ -2,6 +2,20 @@
 
 A schema-driven Page Studio that allows authorised users to load page definitions from Contentful, edit via a lightweight WYSIWYG-lite editor, preview rendered landing pages, and publish immutable versioned releases — all backed by quality gates including automated tests, accessibility audits, and CI.
 
+## Screenshots
+
+### Landing Page
+![Landing Page](/public/images/home.png)
+
+### Studio Editor (Editor Role)
+![Studio Editor](/public/images/editors.png)
+
+### Publisher View
+![Publisher View](/public/images/publisher.png)
+
+### Viewer / Preview
+![Viewer Preview](/public/images/viewer.png)
+
 ## Architecture Overview
 
 Launchpad Studio is designed as a **small frontend platform with isolated subsystems**, not a monolithic React application. Each top-level directory represents a distinct bounded context with clear responsibilities and minimal coupling.
@@ -21,8 +35,10 @@ The **renderer is the core** of the platform. Studio and Preview are both consum
 │              │────────► │                       │
 │ Contentful   │          │  sectionRegistry.ts   │
 │ Adapter      │          │  PageRenderer.tsx     │
-│ (swappable)  │          │  sections/*           │
-└──────────────┘          └──────┬───────┬────────┘
+│ (swappable)  │          │  ErrorBoundary.tsx    │
+└──────────────┘          │  DraftPreview.tsx     │
+                          │  sections/*           │
+                          └──────┬───────┬────────┘
                                  │       │
                     renders      │       │  renders
                                  ▼       ▼
@@ -46,8 +62,8 @@ The **renderer is the core** of the platform. Studio and Preview are both consum
                                            │
                                            ▼
                                     ┌──────────────────┐
-                                    │  releases/       │
-                                    │  <slug>/<v>.json │
+                                    │  Vercel Blob     │
+                                    │  (or filesystem) │
                                     └──────────────────┘
 ```
 
@@ -62,6 +78,64 @@ The **renderer is the core** of the platform. Studio and Preview are both consum
 | **`rbac/`**       | Role-based access control. Server-side enforcement via Next.js middleware.                               | UI reflects permissions, but security is enforced server-side.                      |
 | **`lib/schema/`** | Shared Zod schemas for Page and Section models.                                                          | Shared infrastructure used by renderer, studio, and publish.                        |
 
+### Project Structure
+
+```
+launchpad-studio/
+├── app/
+│   ├── api/
+│   │   ├── publish/route.ts       # POST endpoint — validates, diffs, versions, snapshots
+│   │   └── set-role/route.ts      # Dev helper — sets role cookie
+│   ├── preview/[slug]/page.tsx    # SSR preview — loads published release or CMS data
+│   ├── studio/[slug]/page.tsx     # Studio page — loads latest release as starting point
+│   ├── page.tsx                   # Landing page with role switcher
+│   ├── layout.tsx                 # Root layout
+│   └── globals.css                # Global styles
+├── content/
+│   ├── contentfulClient.ts        # Contentful SDK wrapper (delivery + preview)
+│   ├── contentAdapter.ts          # Transforms raw CMS entries → domain models
+│   ├── getPageBySlug.ts           # Page fetcher with mock fallback
+│   └── types.ts                   # Contentful-specific types (never exported)
+├── renderer/
+│   ├── sectionRegistry.ts         # Typed Record<SectionType, Component> map
+│   ├── PageRenderer.tsx           # Iterates sections, looks up registry, renders
+│   ├── ErrorBoundary.tsx          # Class component error boundary
+│   ├── DraftPreview.tsx           # Client component — checks localStorage for drafts
+│   └── sections/
+│       ├── HeroSection.tsx
+│       ├── FeatureGridSection.tsx
+│       ├── TestimonialSection.tsx
+│       ├── CtaSection.tsx
+│       └── UnsupportedSection.tsx # Fallback for unknown section types
+├── studio/
+│   ├── components/
+│   │   ├── StudioEditor.tsx       # Main layout — sidebar + live preview
+│   │   ├── SectionList.tsx        # Section list with reorder + delete
+│   │   ├── SectionEditor.tsx      # Property editor for selected section
+│   │   └── Toolbar.tsx            # Add section, reset, publish
+│   ├── hooks/
+│   │   └── useStudioStore.ts      # Typed Redux hooks
+│   └── store/
+│       ├── index.ts               # Store configuration
+│       ├── provider.tsx           # Redux provider
+│       └── slices/
+│           ├── draftPageSlice.ts   # Draft state + localStorage persistence
+│           ├── uiSlice.ts          # Selected section, UI state
+│           └── publishSlice.ts     # Publish workflow + async thunk
+├── publish/
+│   ├── diff.ts                    # Structural page comparison
+│   ├── semver.ts                  # Version bump calculator
+│   ├── changelog.ts               # Human-readable change summary
+│   └── snapshot.ts                # Dual-mode storage (Vercel Blob / filesystem)
+├── rbac/
+│   └── roles.ts                   # Role definitions and permission helpers
+├── lib/
+│   └── schema/
+│       └── page.ts                # Zod schemas: Page, Section, SectionType
+├── middleware.ts                   # RBAC enforcement (studio + publish routes)
+└── public/images/                  # Screenshots
+```
+
 ## How Preview Rendering Works
 
 Preview does **not** render raw CMS data directly. Data flows through a strict validation pipeline before reaching the renderer:
@@ -70,11 +144,16 @@ Preview does **not** render raw CMS data directly. Data flows through a strict v
 Contentful API → content/adapter (transform) → Zod validation → renderer/PageRenderer → Page
 ```
 
+The preview page loads data in this priority order:
+1. **localStorage draft** (if editing in studio) — shown with amber "unsaved draft" banner
+2. **Latest published release** (from Vercel Blob or filesystem)
+3. **CMS/mock data** — only if nothing has been published yet
+
 This pipeline ensures:
 1. **Invalid CMS data never crashes the app** — Zod catches malformed entries before rendering
 2. **Unknown section types render gracefully** — `UnsupportedSection` fallback via registry lookup
 3. **CMS is fully decoupled** — swapping Contentful for another CMS only changes the `content/` directory
-4. **Released versions render independently** — snapshots in `releases/` can also feed the renderer, bypassing CMS entirely
+4. **Released versions render independently** — snapshots can feed the renderer, bypassing CMS entirely
 
 ## Redux Slice Responsibilities
 
@@ -83,8 +162,8 @@ Redux state is **scoped to the studio editor only**. Preview and renderer are pu
 | Slice                | Responsibility                                                                                                                                                         |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`draftPageSlice`** | Manages the in-progress page: sections array, add/remove/reorder sections, edit section props (hero text, CTA label/URL). Persisted to localStorage for reload safety. |
-| **`uiSlice`**        | Editor UI state: currently selected section index, panel open/closed state, drag state. Ephemeral — not persisted.                                                     |
-| **`publishSlice`**   | Publish workflow state: loading status, last published version, publish result (version, changelog).                                                                   |
+| **`uiSlice`**        | Editor UI state: currently selected section index. Ephemeral — not persisted.                                                                                          |
+| **`publishSlice`**   | Publish workflow state: loading status, last published version, publish result (version, changelog). Clears localStorage draft on success.                             |
 
 ## Contentful Model + Adapter
 
@@ -93,7 +172,7 @@ Redux state is **scoped to the studio editor only**. Preview and renderer are pu
 Two content types in Contentful:
 
 - **Page** — `pageId`, `slug`, `title`, `sections` (references to Section entries)
-- **Section** — `sectionId`, `type` (hero | featureGrid | testimonial | cta), `props` (validated per type)
+- **Section** — `sectionId`, `type` (hero | featureGrid | testimonial | cta), `props` (JSON object validated per type)
 
 Section props are validated per section type via **Zod discriminated union schemas** — each type has a distinct prop shape (e.g., `hero` → `heading`, `subheading`; `cta` → `label`, `url`). This ensures full type safety from CMS to renderer.
 
@@ -109,7 +188,8 @@ Contentful API → contentfulClient.ts → contentAdapter.ts → Domain Page Mod
 The adapter boundary (`content/`) ensures:
 - No `contentful` SDK types appear in components
 - Switching CMS requires changing only this directory
-- Draft vs published is isolated to the client configuration
+- Draft vs published content is isolated to the client configuration
+- When Contentful credentials aren't configured, mock data is served seamlessly
 
 ## Publish + SemVer Logic
 
@@ -121,7 +201,7 @@ The publish flow compares the current draft against the last published snapshot 
 Draft Page ──► diff.ts ──► Change Set ──► semver.ts ──► Version Bump
                                               │
                                               ▼
-                                    snapshot.ts ──► releases/<slug>/<version>.json
+                                    snapshot.ts ──► Vercel Blob / filesystem
                                               │
                                               ▼
                                     changelog.ts ──► Human-readable summary
@@ -141,19 +221,32 @@ Publishing the same draft twice produces no new version. The diff engine detects
 
 ### Immutable Snapshots
 
-Each publish creates a frozen JSON file at `releases/<slug>/<version>.json` containing the full page schema, timestamp, and changelog. The preview/production page can render from a released snapshot independently of CMS state.
+Each publish creates a frozen JSON snapshot containing the full page schema, timestamp, and changelog. Storage is dual-mode:
+- **Vercel Blob** (when `BLOB_READ_WRITE_TOKEN` is set) — works on Vercel's serverless environment
+- **Filesystem** (`releases/<slug>/<version>.json`) — works locally during development
+
+## RBAC (Role-Based Access Control)
+
+Three roles with server-side enforcement via Next.js middleware:
+
+| Role          |       Studio Access       | Editing | Publish | Preview |
+| ------------- | :-----------------------: | :-----: | :-----: | :-----: |
+| **Viewer**    | ✗ (redirected to preview) |    ✗    |    ✗    |    ✓    |
+| **Editor**    |             ✓             |    ✓    |    ✗    |    ✓    |
+| **Publisher** |             ✓             |    ✓    |    ✓    |    ✓    |
+
+Roles are set via cookie and can be switched from the landing page or via `/api/set-role?role=publisher&redirect=/studio/home`.
 
 ## Accessibility Evidence
 
-### WCAG 2.2 AAA-Oriented Practices
+### WCAG 2.2 Practices
 
-- **Keyboard operability**: All interactive elements (studio controls, section editing, navigation) are fully keyboard accessible with logical tab order
+- **Keyboard operability**: All interactive elements are fully keyboard accessible with logical tab order
 - **Visible focus states**: Custom focus-visible rings on all interactive elements
 - **Heading hierarchy**: Single `<h1>` per page, sequential heading levels, semantic HTML5 elements
-- **`prefers-reduced-motion`**: All animations and transitions respect the user's motion preference via `motion-safe:` / `motion-reduce:` utilities
-- **Form accessibility**: All form inputs have associated `<label>` elements, error messages use `aria-describedby`, required fields marked with `aria-required`
-- **Axe audit**: Automated accessibility testing via Playwright + axe-core, generating `a11y-report.json` artifact
-- **CI enforcement**: GitHub Actions fails on any critical axe violations
+- **Form accessibility**: All form inputs have associated `<label>` elements
+- **Error boundaries**: Rendering errors are caught and displayed gracefully
+- **Semantic HTML**: `<blockquote>` for testimonials, `<a>` for CTAs (not `<button>`), `<main>` landmarks
 
 ## Tech Stack
 
@@ -165,7 +258,7 @@ Each publish creates a frozen JSON file at `releases/<slug>/<version>.json` cont
 | Contentful           | Headless CMS                            |
 | Zod                  | Runtime schema validation               |
 | Tailwind CSS         | Styling                                 |
-| shadcn/ui            | UI component primitives                 |
+| Vercel Blob          | Snapshot storage (production)           |
 | Playwright           | E2E testing                             |
 | axe-core             | Accessibility auditing                  |
 | Vitest               | Unit testing                            |
@@ -182,7 +275,7 @@ Each publish creates a frozen JSON file at `releases/<slug>/<version>.json` cont
 ### Setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/princesinghrajput/launchpad-Studio.git
 cd launchpad-studio
 npm install
 cp .env.local.example .env.local
@@ -196,6 +289,7 @@ npm run dev
 CONTENTFUL_SPACE_ID=your_space_id
 CONTENTFUL_ACCESS_TOKEN=your_delivery_token
 CONTENTFUL_PREVIEW_TOKEN=your_preview_token
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -207,12 +301,17 @@ npm run build        # Production build
 npm run lint         # ESLint
 npm run test         # Unit tests (Vitest)
 npm run test:e2e     # E2E tests (Playwright)
-npm run test:a11y    # Accessibility audit
 ```
 
 ## What Is Incomplete and Why
 
-> This section will be updated as development progresses to document any features that were deprioritised or left incomplete, along with the rationale.
+**Drag-to-reorder**: Replaced with Up/Down buttons. Drag-and-drop libraries add significant complexity; the keyboard alternative is more accessible anyway.
+
+**FeatureGrid and Testimonial prop editing**: The brief specifies Hero text and CTA label/URL as the required editable props. These section types render correctly from CMS data but their props can't be edited inline in the studio.
+
+**Authentication**: Role is stored in a plain cookie with no signing or session management. This is demo-only. Real auth would use NextAuth or a similar provider.
+
+**Unit and E2E tests**: Vitest config and Playwright config are set up but test files are pending. The `publish/` module (diff, semver, changelog) is designed to be testable in isolation.
 
 ## License
 
