@@ -1,4 +1,5 @@
 import type { Page, Section, SectionType } from '@/lib/schema/page';
+import { SectionSchema } from '@/lib/schema/page';
 import type { ContentfulPageFields, ContentfulSectionFields } from './types';
 
 const VALID_TYPES = new Set<string>(['hero', 'featureGrid', 'testimonial', 'cta']);
@@ -41,9 +42,11 @@ function adaptSection(fields: ContentfulSectionFields | undefined): Section | nu
     if (!fields?.type || !fields?.props) return null;
     if (!isValidSectionType(fields.type)) return null;
 
-    return {
+    const result = SectionSchema.safeParse({
         id: fields.sectionId || crypto.randomUUID(),
         type: fields.type,
-        props: fields.props as Section['props'],
-    };
+        props: fields.props,
+    });
+
+    return result.success ? result.data : null;
 }

@@ -1,65 +1,137 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { Layers, Eye, Pencil, Upload } from 'lucide-react';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="flex min-h-screen flex-col">
+      {/* Nav */}
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+          <div className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-primary" />
+            <span className="text-sm font-bold tracking-tight">Launchpad Studio</span>
+          </div>
+          <nav className="flex items-center gap-3">
+            <Link
+              href="/preview/home"
+              className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Preview
+            </Link>
+            <Link
+              href="/api/set-role?role=publisher&redirect=/studio/home"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Open Studio
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <main className="flex flex-1 flex-col">
+        <section className="flex flex-col items-center justify-center gap-6 px-6 py-28 text-center">
+          <div className="rounded-full bg-primary/10 px-4 py-1 text-xs font-medium text-primary">
+            Schema-Driven Page Builder
+          </div>
+          <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+            Build, edit, and publish
+            <br />
+            <span className="text-primary">landing pages</span> with confidence
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="max-w-lg text-lg text-muted-foreground">
+            A studio for creating immutable page releases with Zod validation,
+            automated SemVer, and role-based access control.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <div className="flex gap-3 pt-4">
+            <Link
+              href="/api/set-role?role=publisher&redirect=/studio/home"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Pencil className="h-4 w-4" />
+              Open Studio
+            </Link>
+            <Link
+              href="/preview/home"
+              className="inline-flex items-center gap-2 rounded-md border px-5 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Eye className="h-4 w-4" />
+              View Preview
+            </Link>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="border-t bg-muted/30 px-6 py-20">
+          <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-3">
+            <div className="flex flex-col gap-3 rounded-lg border bg-background p-6 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                <Layers className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-base font-semibold">Schema-Driven</h2>
+              <p className="text-sm text-muted-foreground">
+                Zod-validated sections with typed registry. Invalid CMS data
+                is caught before render.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border bg-background p-6 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                <Upload className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-base font-semibold">Version Control</h2>
+              <p className="text-sm text-muted-foreground">
+                Automated SemVer with deterministic diffing. Every publish
+                creates an immutable JSON snapshot.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border bg-background p-6 shadow-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                <Pencil className="h-5 w-5 text-primary" />
+              </div>
+              <h2 className="text-base font-semibold">WYSIWYG-Lite</h2>
+              <p className="text-sm text-muted-foreground">
+                Edit sections and see changes in the live preview panel.
+                Add, reorder, and remove sections visually.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Roles */}
+        <section className="border-t px-6 py-16">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="mb-6 text-2xl font-bold tracking-tight">Quick Role Switcher</h2>
+            <p className="mb-8 text-sm text-muted-foreground">
+              Set your role to test different access levels (enforced via middleware).
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link
+                href="/api/set-role?role=viewer&redirect=/preview/home"
+                className="rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                👁 Viewer
+              </Link>
+              <Link
+                href="/api/set-role?role=editor&redirect=/studio/home"
+                className="rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                ✏️ Editor
+              </Link>
+              <Link
+                href="/api/set-role?role=publisher&redirect=/studio/home"
+                className="rounded-md border bg-green-50 px-4 py-2 text-sm font-medium text-green-700 transition-colors hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-green-950/30 dark:text-green-400"
+              >
+                🚀 Publisher
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t py-6 text-center text-xs text-muted-foreground">
+        Launchpad Studio — Schema-driven page builder
+      </footer>
     </div>
   );
 }
