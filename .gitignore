@@ -42,3 +42,13 @@ next-env.d.ts
 *.agent
 *.agents
 .codex
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# a11y reports  
+a11y-report.json
+assignment.md
