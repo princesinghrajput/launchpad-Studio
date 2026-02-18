@@ -77,7 +77,7 @@ export default function Home() {
       </main>
 
       <footer className="py-4 text-center text-xs text-muted-foreground">
-        Built by Prince Singh Rajput
+        Built by Prince 
       </footer>
     </div>
   );
